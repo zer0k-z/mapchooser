@@ -52,6 +52,14 @@ static bool IsInMapPool(const char *mapName)
     return false;
 }
 
+static const char *GetCurrentMapName()
+{
+    CGlobalVars *pGlobals = g_pEngineServer->GetServerGlobals();
+    if (!pGlobals)
+        return "";
+    return pGlobals->mapname.ToCStr();
+}
+
 // ============================================================
 // Nomination state
 // ============================================================
@@ -201,11 +209,15 @@ static void TriggerMapVote(const char *reason, bool allowExtend)
     char selectedMaps[VOTE_MAP_SLOTS][128];
     int selectedCount = 0;
 
+    const char *currentMap = GetCurrentMapName();
+
     // Step 1: nominations
     char nomMaps[MAX_NOMINATIONS][128];
     int nomCount = BuildNominationList(nomMaps, MAX_NOMINATIONS);
     for (int i = 0; i < nomCount && selectedCount < VOTE_MAP_SLOTS; i++)
     {
+        if (V_stricmp(nomMaps[i], currentMap) == 0)
+            continue; // skip current map
         strncpy(selectedMaps[selectedCount], nomMaps[i], 127);
         selectedMaps[selectedCount][127] = '\0';
         selectedCount++;
@@ -227,7 +239,8 @@ static void TriggerMapVote(const char *reason, bool allowExtend)
         {
             const char *candidate = g_mapPool[indices[i]];
 
-            // Skip if already selected
+            // Skip current map or already selected
+            if (V_stricmp(candidate, currentMap) == 0) continue;
             bool dup = false;
             for (int j = 0; j < selectedCount; j++)
                 if (V_stricmp(selectedMaps[j], candidate) == 0) { dup = true; break; }
@@ -398,6 +411,12 @@ CMD_NAMED(cmd_nominate, "nominate")
     }
 
     const char *mapName = args->Arg(1);
+
+    if (V_stricmp(mapName, GetCurrentMapName()) == 0)
+    {
+        PrintChatToSlot(controller_id, "\x02[Nominate]\x01 You cannot nominate the current map.");
+        return MRES_SUPERCEDE;
+    }
 
     if (!IsInMapPool(mapName))
     {
