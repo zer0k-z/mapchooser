@@ -1,0 +1,11 @@
+{
+    "name": "mapchooser",
+    "alias": "mapchooser",
+    "display_name": "Map Chooser",
+    "description": "Allows players to vote for the next map",
+    "author": "zer0.k",
+    "url": "http://www.sourcemm.net/",
+    "log_tag": "MAPCHOOSER",
+    "license": "AGPLv3",
+    "version": "1.0.0.{{git-shorthash}}"
+}
