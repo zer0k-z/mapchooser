@@ -54,7 +54,7 @@ bool scmd::RegisterCmd(const char *name, CommandCallback_t callback)
 	}
 
 	Command *cmd = &g_commands[g_command_count++];
-	strcpy_s(cmd->name, MAX_COMMAND_NAME, name);
+	V_strncpy(cmd->name, name, MAX_COMMAND_NAME);
 	cmd->callback = callback;
 
 	return true;

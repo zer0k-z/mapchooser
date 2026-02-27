@@ -25,8 +25,6 @@ MMSPlugin g_ThisPlugin;
 PLUGIN_EXPOSE(MMSPlugin, g_ThisPlugin);
 
 IGameEventSystem *g_pGameEventSystem = nullptr;
-
-static ISource2GameClients *g_pSource2GameClients = nullptr;
 ISource2Server *g_pServer = nullptr;
 static void *g_pGameResourceService = nullptr;
 static CModule *g_serverModule = nullptr;

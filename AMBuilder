@@ -35,5 +35,10 @@ for sdk_target in MMSPlugin.sdk_targets:
       os.path.join(sdk['path'], 'lib', 'public', 'win64', 'steam_api64.lib')
     ]
 
+  if binary.compiler.family == 'gcc' or binary.compiler.family == 'clang':
+    binary.compiler.defines += ['_GLIBCXX_USE_CXX11_ABI=0']
+
+  if binary.compiler.family == 'clang':
+    binary.compiler.cxxflags += ['-Wno-register', '-frtti', '-Wno-invalid-offsetof', '-Wno-parentheses']
   nodes = builder.Add(binary)
   MMSPlugin.binaries += [nodes]
