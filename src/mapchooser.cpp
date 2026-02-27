@@ -410,19 +410,42 @@ CMD_NAMED(cmd_nominate, "nominate")
         return MRES_SUPERCEDE;
     }
 
-    const char *mapName = args->Arg(1);
+    const char *query = args->Arg(1);
 
-    if (V_stricmp(mapName, GetCurrentMapName()) == 0)
+    // Find the map: exact match first, then first substring match
+    const char *mapName = nullptr;
+    const char *currentMap = GetCurrentMapName();
+    for (int i = 0; i < g_mapPoolCount; i++)
     {
-        PrintChatToSlot(controller_id, "\x02[Nominate]\x01 You cannot nominate the current map.");
+        if (V_stricmp(g_mapPool[i], query) == 0)
+        {
+            mapName = g_mapPool[i];
+            break;
+        }
+    }
+    if (!mapName)
+    {
+        for (int i = 0; i < g_mapPoolCount; i++)
+        {
+            if (V_stristr(g_mapPool[i], query))
+            {
+                mapName = g_mapPool[i];
+                break;
+            }
+        }
+    }
+
+    if (!mapName)
+    {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "\x02[Nominate]\x01 No map matching \x05%s\x01 found in the pool.", query);
+        PrintChatToSlot(controller_id, msg);
         return MRES_SUPERCEDE;
     }
 
-    if (!IsInMapPool(mapName))
+    if (V_stricmp(mapName, currentMap) == 0)
     {
-        char msg[256];
-        snprintf(msg, sizeof(msg), "\x02[Nominate]\x01 \x05%s\x01 is not in the map pool.", mapName);
-        PrintChatToSlot(controller_id, msg);
+        PrintChatToSlot(controller_id, "\x02[Nominate]\x01 You cannot nominate the current map.");
         return MRES_SUPERCEDE;
     }
 
