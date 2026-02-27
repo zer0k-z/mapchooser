@@ -341,8 +341,12 @@ static void OnVoteEnd(int winnerIdx, int *voteCounts, int numOptions)
             StartTimer([]() -> double {
                 if (g_nextMap[0] != '\0')
                 {
+                    uint64_t workshopID = Workshop_GetMapID(g_nextMap);
                     char cmd[160];
-                    snprintf(cmd, sizeof(cmd), "changelevel %s", g_nextMap);
+                    if (workshopID)
+                        snprintf(cmd, sizeof(cmd), "host_workshop_map %llu", workshopID);
+                    else
+                        snprintf(cmd, sizeof(cmd), "changelevel %s", g_nextMap);
                     g_pEngineServer->ServerCommand(cmd);
                     g_nextMap[0] = '\0';
                 }
@@ -536,8 +540,12 @@ void OnGameFrame()
                                     + mp_match_restart_delay.GetFloat();
             if (globals->curtime >= intermissionEnd - 1.0f)
             {
+                uint64_t workshopID = Workshop_GetMapID(g_nextMap);
                 char cmd[160];
-                snprintf(cmd, sizeof(cmd), "changelevel %s", g_nextMap);
+                if (workshopID)
+                    snprintf(cmd, sizeof(cmd), "host_workshop_map %llu", workshopID);
+                else
+                    snprintf(cmd, sizeof(cmd), "changelevel %s", g_nextMap);
                 g_pEngineServer->ServerCommand(cmd);
                 g_nextMap[0] = '\0'; // prevent re-firing
             }

@@ -24,6 +24,8 @@ static CConVar<uint64> mm_workshop_collection(
 // Workshop loader
 // ============================================================
 
+static const int MAX_CHILDREN = 2000;
+
 class CWorkshopLoader
 {
 public:
@@ -37,7 +39,6 @@ private:
     CCallResult<CWorkshopLoader, SteamUGCQueryCompleted_t> m_itemsCall;
 
     // Scratch buffer for child IDs between the two queries
-    static const int MAX_CHILDREN = 2000;
     PublishedFileId_t m_childIds[MAX_CHILDREN];
     uint32 m_numChildren = 0;
 };
@@ -145,6 +146,7 @@ void CWorkshopLoader::OnItemsQueryCompleted(SteamUGCQueryCompleted_t *pResult, b
 
     // Static name buffer — lives as long as the process
     static char s_mapNames[MAX_CHILDREN][128];
+    static uint64_t s_mapIDs[MAX_CHILDREN];
     const char *mapPtrs[MAX_CHILDREN];
     int mapCount = 0;
 
@@ -168,15 +170,43 @@ void CWorkshopLoader::OnItemsQueryCompleted(SteamUGCQueryCompleted_t *pResult, b
 
         strncpy(s_mapNames[mapCount], details.m_rgchTitle, 127);
         s_mapNames[mapCount][127] = '\0';
+        s_mapIDs[mapCount] = (uint64_t)details.m_nPublishedFileId;
         mapPtrs[mapCount] = s_mapNames[mapCount];
         mapCount++;
     }
 
     pUGC->ReleaseQueryUGCRequest(pResult->m_handle);
 
+    // Update module-level lookup table
+    s_knownCount = mapCount;
+    for (int i = 0; i < mapCount; i++)
+    {
+        strncpy(s_knownNames[i], s_mapNames[i], 127);
+        s_knownNames[i][127] = '\0';
+        s_knownIDs[i] = s_mapIDs[i];
+    }
+
     MapPool_SetFromWorkshop(mapPtrs, mapCount);
     META_CONPRINTF("[Workshop] Map pool set: %d maps loaded from workshop.\n", mapCount);
     g_workshopReady = true;
+}
+
+// ============================================================
+// Workshop ID lookup
+// ============================================================
+
+// These parallel the s_mapNames / s_mapIDs statics inside OnItemsQueryCompleted.
+// We keep a module-level copy so Workshop_GetMapID can access them.
+static char s_knownNames[MAX_CHILDREN][128];
+static uint64_t s_knownIDs[MAX_CHILDREN];
+static int s_knownCount = 0;
+
+uint64_t Workshop_GetMapID(const char *mapName)
+{
+    for (int i = 0; i < s_knownCount; i++)
+        if (V_stricmp(s_knownNames[i], mapName) == 0)
+            return s_knownIDs[i];
+    return 0;
 }
 
 // ============================================================
