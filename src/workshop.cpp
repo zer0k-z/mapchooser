@@ -47,6 +47,11 @@ static CWorkshopLoader g_workshopLoader;
 static bool g_workshopQueryStarted = false;
 static bool g_workshopReady = false;
 
+// Module-level workshop ID lookup table (populated after each successful query)
+static char s_knownNames[MAX_CHILDREN][128];
+static uint64_t s_knownIDs[MAX_CHILDREN];
+static int s_knownCount = 0;
+
 // ----------------------------------------------------------------
 
 void CWorkshopLoader::QueryCollection()
@@ -194,12 +199,6 @@ void CWorkshopLoader::OnItemsQueryCompleted(SteamUGCQueryCompleted_t *pResult, b
 // ============================================================
 // Workshop ID lookup
 // ============================================================
-
-// These parallel the s_mapNames / s_mapIDs statics inside OnItemsQueryCompleted.
-// We keep a module-level copy so Workshop_GetMapID can access them.
-static char s_knownNames[MAX_CHILDREN][128];
-static uint64_t s_knownIDs[MAX_CHILDREN];
-static int s_knownCount = 0;
 
 uint64_t Workshop_GetMapID(const char *mapName)
 {

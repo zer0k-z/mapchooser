@@ -178,7 +178,7 @@ static char g_voteSelectedMaps[VOTE_MAP_SLOTS][128];
 static int  g_voteSelectedCount = 0;
 
 // Simple LCG for random map selection (no stdlib rand needed)
-static uint32_t g_lcgSeed = 12345;
+static uint32_t g_lcgSeed = 0;
 static uint32_t LCGRand()
 {
     g_lcgSeed = g_lcgSeed * 1664525u + 1013904223u;
@@ -202,6 +202,12 @@ static void TriggerMapVote(const char *reason, bool allowExtend)
 
     g_voteTriggered = true;
     g_voteHasExtend  = allowExtend;
+
+    // Re-seed the LCG from current time so shuffles differ each vote
+    CGlobalVars *pSeedGlobals = g_pEngineServer ? g_pEngineServer->GetServerGlobals() : nullptr;
+    if (pSeedGlobals)
+        g_lcgSeed = (uint32_t)(pSeedGlobals->curtime * 1000.0f);
+    if (g_lcgSeed == 0) g_lcgSeed = 1;
 
     // Collect up to VOTE_MAP_SLOTS map names:
     // 1) highest-nominated maps first
@@ -344,7 +350,7 @@ static void OnVoteEnd(int winnerIdx, int *voteCounts, int numOptions)
                     uint64_t workshopID = Workshop_GetMapID(g_nextMap);
                     char cmd[160];
                     if (workshopID)
-                        snprintf(cmd, sizeof(cmd), "host_workshop_map %llu", workshopID);
+                        snprintf(cmd, sizeof(cmd), "host_workshop_map %llu", (unsigned long long)workshopID);
                     else
                         snprintf(cmd, sizeof(cmd), "changelevel %s", g_nextMap);
                     g_pEngineServer->ServerCommand(cmd);
@@ -543,7 +549,7 @@ void OnGameFrame()
                 uint64_t workshopID = Workshop_GetMapID(g_nextMap);
                 char cmd[160];
                 if (workshopID)
-                    snprintf(cmd, sizeof(cmd), "host_workshop_map %llu", workshopID);
+                    snprintf(cmd, sizeof(cmd), "host_workshop_map %llu", (unsigned long long)workshopID);
                 else
                     snprintf(cmd, sizeof(cmd), "changelevel %s", g_nextMap);
                 g_pEngineServer->ServerCommand(cmd);
