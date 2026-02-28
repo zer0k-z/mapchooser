@@ -10,5 +10,8 @@ void OnGameFrame();
 // Called once after plugin Load.
 void MC_Init();
 
+// Called by Metamod on every level init (covers manual changelevel, not just intermission).
+void MC_OnLevelInit();
+
 // Set the map pool from a workshop collection query result.
 void MapPool_SetFromWorkshop(const char **maps, int count);

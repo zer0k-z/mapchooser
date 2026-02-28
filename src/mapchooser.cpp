@@ -272,6 +272,36 @@ static void TriggerMapVote(const char *reason, bool allowExtend)
         g_voteSelectedMaps[i][127] = '\0';
     }
 
+    // If the server is empty, skip the vote and auto-pick a random map
+    if (GetRealPlayerCount() == 0 && selectedCount > 0)
+    {
+        int pick = (int)(LCGRand() % (uint32_t)selectedCount);
+        strncpy(g_nextMap, selectedMaps[pick], 127);
+        g_nextMap[127] = '\0';
+        META_CONPRINTF("[MapChooser] Server empty! Auto-picked map: %s\n", g_nextMap);
+
+        if (!allowExtend)
+        {
+            // RTV path: trigger the changelevel after a short delay
+            StartTimer([]() -> double {
+                if (g_nextMap[0] != '\0')
+                {
+                    uint64_t workshopID = Workshop_GetMapID(g_nextMap);
+                    char cmd[160];
+                    if (workshopID)
+                        snprintf(cmd, sizeof(cmd), "host_workshop_map %llu", (unsigned long long)workshopID);
+                    else
+                        snprintf(cmd, sizeof(cmd), "changelevel %s", g_nextMap);
+                    g_pEngineServer->ServerCommand(cmd);
+                    g_nextMap[0] = '\0';
+                }
+                return -1.0;
+            }, 5.0, false);
+        }
+        // For end-of-map (allowExtend=true): g_nextMap is set; OnGameFrame will changelevel
+        return;
+    }
+
     // Build final VoteOption list: [Extend |] map1..mapN | No Vote
     VoteOption options[MAX_VOTE_OPTIONS];
     int numOptions = 0;
@@ -313,8 +343,22 @@ static void OnVoteEnd(int winnerIdx, int *voteCounts, int numOptions)
 
     if (winnerIdx < 0)
     {
-        PrintChatAll("\x04[Vote]\x01 No map was chosen.");
-        HandleRtvFailed();
+        // End-of-map vote with no votes cast: pick a random map rather than doing nothing
+        if (g_voteHasExtend && g_voteSelectedCount > 0)
+        {
+            int pick = (int)(LCGRand() % (uint32_t)g_voteSelectedCount);
+            strncpy(g_nextMap, g_voteSelectedMaps[pick], 127);
+            g_nextMap[127] = '\0';
+            char msg[256];
+            snprintf(msg, sizeof(msg), "\x04[Vote]\x01 No votes cast \xe2\x80\x94 randomly picked \x05%s\x01!", g_nextMap);
+            PrintChatAll(msg);
+            nextlevel.Set(g_nextMap);
+        }
+        else
+        {
+            PrintChatAll("\x04[Vote]\x01 No map was chosen.");
+            HandleRtvFailed();
+        }
         return;
     }
 
@@ -581,6 +625,12 @@ void OnGameFrame()
 // ============================================================
 // Init (called from plugin Load)
 // ============================================================
+
+void MC_OnLevelInit()
+{
+    ResetRtvState();
+    g_wasInIntermission = false;
+}
 
 void MC_Init()
 {

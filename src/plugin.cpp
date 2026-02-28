@@ -109,6 +109,7 @@ bool MMSPlugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, boo
 		false
 	);
 	META_CONVAR_REGISTER(FCVAR_RELEASE | FCVAR_GAMEDLL);
+	g_SMAPI->AddListener(this, this);
 	MC_Init();
 
 	return true;
@@ -130,6 +131,12 @@ bool MMSPlugin::Unload(char *error, size_t maxlen)
 	g_serverModule = nullptr;
 
 	return true;
+}
+
+void MMSPlugin::OnLevelInit(char const *pMapName, char const *pMapEntities, char const *pOldLevel,
+	char const *pLandmarkName, bool loadGame, bool background)
+{
+	MC_OnLevelInit();
 }
 
 void MMSPlugin::AllPluginsLoaded()
