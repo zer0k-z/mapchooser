@@ -149,6 +149,12 @@ static void ResetRtvState()
     for (int i = 0; i < MAX_PLAYERS; i++)
         g_rtvVoters[i] = false;
     ClearNominations();
+
+    // Re-arm RTV after the delay
+    StartTimer([]() -> double {
+        g_rtvAllowed = true;
+        return -1.0;
+    }, RTV_DELAY_SECONDS, false);
 }
 
 static int GetRtvThreshold()
@@ -582,10 +588,4 @@ void MC_Init()
     // Workshop_OnSteamAPIActivated() will call Workshop_TryLoad() at the right moment.
     Workshop_TryLoad();
     ResetRtvState();
-
-    // Allow RTV after a delay so players can't RTV immediately on spawn
-    StartTimer([]() -> double {
-        g_rtvAllowed = true;
-        return -1.0;
-    }, RTV_DELAY_SECONDS, false);
 }
