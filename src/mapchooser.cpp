@@ -9,6 +9,7 @@
 #include "workshop.h"
 #include <string.h>
 #include <stdio.h>
+#include <random>
 
 // ============================================================
 // Constants
@@ -183,13 +184,8 @@ static bool g_voteHasExtend = false;
 static char g_voteSelectedMaps[VOTE_MAP_SLOTS][128];
 static int  g_voteSelectedCount = 0;
 
-// Simple LCG for random map selection (no stdlib rand needed)
-static uint32_t g_lcgSeed = 0;
-static uint32_t LCGRand()
-{
-    g_lcgSeed = g_lcgSeed * 1664525u + 1013904223u;
-    return g_lcgSeed;
-}
+static std::mt19937 g_rng{std::random_device{}()};
+static int RandInt(int n) { return std::uniform_int_distribution<int>(0, n - 1)(g_rng); }
 
 static void TriggerMapVote(const char *reason, bool allowExtend)
 {
@@ -208,12 +204,6 @@ static void TriggerMapVote(const char *reason, bool allowExtend)
 
     g_voteTriggered = true;
     g_voteHasExtend  = allowExtend;
-
-    // Re-seed the LCG from current time so shuffles differ each vote
-    CGlobalVars *pSeedGlobals = g_pEngineServer ? g_pEngineServer->GetServerGlobals() : nullptr;
-    if (pSeedGlobals)
-        g_lcgSeed = (uint32_t)(pSeedGlobals->curtime * 1000.0f);
-    if (g_lcgSeed == 0) g_lcgSeed = 1;
 
     // Collect up to VOTE_MAP_SLOTS map names:
     // 1) highest-nominated maps first
@@ -243,7 +233,7 @@ static void TriggerMapVote(const char *reason, bool allowExtend)
         for (int i = 0; i < g_mapPoolCount; i++) indices[i] = i;
         for (int i = g_mapPoolCount - 1; i > 0; i--)
         {
-            int j = (int)(LCGRand() % (uint32_t)(i + 1));
+            int j = RandInt(i + 1);
             int tmp = indices[i]; indices[i] = indices[j]; indices[j] = tmp;
         }
 
@@ -275,7 +265,7 @@ static void TriggerMapVote(const char *reason, bool allowExtend)
     // If the server is empty, skip the vote and auto-pick a random map
     if (GetRealPlayerCount() == 0 && selectedCount > 0)
     {
-        int pick = (int)(LCGRand() % (uint32_t)selectedCount);
+        int pick = RandInt(selectedCount);
         strncpy(g_nextMap, selectedMaps[pick], 127);
         g_nextMap[127] = '\0';
         META_CONPRINTF("[MapChooser] Server empty! Auto-picked map: %s\n", g_nextMap);
@@ -346,7 +336,7 @@ static void OnVoteEnd(int winnerIdx, int *voteCounts, int numOptions)
         // End-of-map vote with no votes cast: pick a random map rather than doing nothing
         if (g_voteHasExtend && g_voteSelectedCount > 0)
         {
-            int pick = (int)(LCGRand() % (uint32_t)g_voteSelectedCount);
+            int pick = RandInt(g_voteSelectedCount);
             strncpy(g_nextMap, g_voteSelectedMaps[pick], 127);
             g_nextMap[127] = '\0';
             char msg[256];
@@ -586,15 +576,16 @@ void OnGameFrame()
         }
     }
 
-    // ---- Manual changelevel 1s before intermission ends ----
+    // ---- Manual changelevel 1s before intermission ends (immediately if server empty) ----
     if (inIntermission && g_nextMap[0] != '\0')
     {
         CGlobalVars *globals = g_pEngineServer ? g_pEngineServer->GetServerGlobals() : nullptr;
         if (globals)
         {
+            bool serverEmpty = GetRealPlayerCount() == 0;
             float intermissionEnd = rules->m_flIntermissionStartTime().GetTime()
                                     + mp_match_restart_delay.GetFloat();
-            if (globals->curtime >= intermissionEnd - 1.0f)
+            if (serverEmpty || globals->curtime >= intermissionEnd - 1.0f)
             {
                 uint64_t workshopID = Workshop_GetMapID(g_nextMap);
                 char cmd[160];
