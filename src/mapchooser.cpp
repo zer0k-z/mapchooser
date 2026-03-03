@@ -41,7 +41,7 @@ void MapPool_SetFromWorkshop(const char **maps, int count)
         g_mapPool[g_mapPoolCount][127] = '\0';
         g_mapPoolCount++;
     }
-    META_CONPRINTF("[MapChooser] Map pool updated: %d maps from workshop.\n", g_mapPoolCount);
+    META_CONPRINTF("[MapChooser] Map pool updated: %d maps from cs2kz API.\n", g_mapPoolCount);
 }
 
 static bool IsInMapPool(const char *mapName)

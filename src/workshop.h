@@ -6,9 +6,8 @@
 void Workshop_OnSteamAPIActivated();
 void Workshop_TryLoad();
 
-// Returns true once the workshop collection has been successfully loaded,
-// or immediately if no collection ID is configured (mm_workshop_collection 0).
+// Returns true once the map pool has been successfully loaded from the cs2kz API.
 bool Workshop_IsReady();
 
-// Returns the workshop file ID for a map by title, or 0 if not found.
+// Returns the workshop file ID for a map by name, or 0 if not found.
 uint64_t Workshop_GetMapID(const char *mapName);
