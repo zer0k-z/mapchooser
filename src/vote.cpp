@@ -23,27 +23,18 @@ bool IsVoteActive()
 
 static void PrintVoteToAll()
 {
-    // Re-print to everyone at the start (and could be re-printed periodically)
-    // Each line is sent as a separate message so it appears as real chat lines
     char line[256];
 
-    for (int slot = 0; slot < MAX_PLAYERS; slot++)
+    int totalVoted = 0;
+    for (int i = 0; i < MAX_PLAYERS; i++)
+        if (IsRealPlayer(i) && g_playerVote[i] >= 0) totalVoted++;
+    int totalReal = GetRealPlayerCount();
+
+    PrintChatAll(" \x04[Vote]\x01 (%d/%d voted) Options:", totalVoted, totalReal);
+    for (int i = 0; i < g_numVoteOptions; i++)
     {
-        if (!IsRealPlayer(slot))
-            continue;
-
-        // Find how many options already voted
-        int totalVoted = 0;
-        for (int i = 0; i < MAX_PLAYERS; i++)
-            if (IsRealPlayer(i) && g_playerVote[i] >= 0) totalVoted++;
-        int totalReal = GetRealPlayerCount();
-
-        PrintChatToSlot(slot, " \x04[Vote]\x01 (%d/%d voted) Options:", totalVoted, totalReal);
-        for (int i = 0; i < g_numVoteOptions; i++)
-        {
-            snprintf(line, sizeof(line), "  \x05!%d\x01 %s", i, g_voteOptions[i].name);
-            PrintChatToSlot(slot, line);
-        }
+        snprintf(line, sizeof(line), "  \x05!%d\x01 %s", i, g_voteOptions[i].name);
+        PrintChatAll(line);
     }
 }
 
