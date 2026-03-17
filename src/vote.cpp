@@ -8,6 +8,7 @@
 static bool g_voteActive = false;
 static VoteOption g_voteOptions[MAX_VOTE_OPTIONS];
 static int g_numVoteOptions = 0;
+static int g_firstIdx = 0; // first valid option index (!0 reserved for extend when firstIdx=1)
 static int g_playerVote[MAX_PLAYERS]; // -1 = not voted
 static int g_voteCounts[MAX_VOTE_OPTIONS];
 static VoteEndCallback_t g_voteEndCallback = nullptr;
@@ -31,7 +32,7 @@ static void PrintVoteToAll()
     int totalReal = GetRealPlayerCount();
 
     PrintChatAll(" \x04[Vote]\x01 (%d/%d voted) Options:", totalVoted, totalReal);
-    for (int i = 0; i < g_numVoteOptions; i++)
+    for (int i = g_firstIdx; i < g_numVoteOptions; i++)
     {
         snprintf(line, sizeof(line), "  \x05!%d\x01 %s", i, g_voteOptions[i].name);
         PrintChatAll(line);
@@ -80,7 +81,7 @@ static void EndVote()
 
     // Print results
     PrintChatAll("\x04[Vote]\x01 Results:");
-    for (int i = 0; i < g_numVoteOptions; i++)
+    for (int i = g_firstIdx; i < g_numVoteOptions; i++)
     {
         char line[256];
         snprintf(line, sizeof(line), "  !%d %s - \x05%d\x01 vote(s)%s",
@@ -108,7 +109,7 @@ static void EndVote()
         cb(winnerCount > 0 ? winnerIdx : -1, g_voteCounts, g_numVoteOptions);
 }
 
-bool StartVote(const char *title, VoteOption *options, int numOptions, float duration, VoteEndCallback_t onEnd)
+bool StartVote(const char *title, VoteOption *options, int numOptions, float duration, VoteEndCallback_t onEnd, int firstIdx)
 {
     if (g_voteActive)
         return false;
@@ -118,6 +119,7 @@ bool StartVote(const char *title, VoteOption *options, int numOptions, float dur
 
     g_voteActive = true;
     g_numVoteOptions = numOptions;
+    g_firstIdx = firstIdx;
     g_voteEndCallback = onEnd;
 
     for (int i = 0; i < numOptions; i++)
@@ -153,9 +155,9 @@ void Vote_HandleDigit(int slot, int digit)
     if (!IsRealPlayer(slot))
         return;
 
-    if (digit < 0 || digit >= g_numVoteOptions)
+    if (digit < g_firstIdx || digit >= g_numVoteOptions)
     {
-        PrintChatToSlot(slot, "\x02[Vote]\x01 Invalid option. Type !0 - !%d.", g_numVoteOptions - 1);
+        PrintChatToSlot(slot, "\x02[Vote]\x01 Invalid option. Type !%d - !%d.", g_firstIdx, g_numVoteOptions - 1);
         return;
     }
 

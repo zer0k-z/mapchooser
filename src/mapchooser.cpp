@@ -296,11 +296,12 @@ static void TriggerMapVote(const char *reason, bool allowExtend)
     VoteOption options[MAX_VOTE_OPTIONS];
     int numOptions = 0;
 
+    // Index 0 is always reserved: Extend (when allowed) or blank (maps start at !1 either way)
     if (allowExtend)
-    {
-        strncpy(options[numOptions].name, "Extend Current Map", sizeof(options[0].name));
-        numOptions++;
-    }
+        strncpy(options[0].name, "Extend Current Map", sizeof(options[0].name));
+    else
+        options[0].name[0] = '\0';
+    numOptions = 1;
 
     for (int i = 0; i < selectedCount; i++)
     {
@@ -312,7 +313,8 @@ static void TriggerMapVote(const char *reason, bool allowExtend)
     strncpy(options[numOptions].name, "No Vote / Abstain", sizeof(options[0].name));
     numOptions++;
 
-    StartVote(reason, options, numOptions, 30.0f, OnVoteEnd);
+    // firstIdx=0 shows !0 (Extend); firstIdx=1 hides the reserved slot so maps start at !1
+    StartVote(reason, options, numOptions, 30.0f, OnVoteEnd, allowExtend ? 0 : 1);
 }
 
 static void OnVoteEnd(int winnerIdx, int *voteCounts, int numOptions)
@@ -370,8 +372,8 @@ static void OnVoteEnd(int winnerIdx, int *voteCounts, int numOptions)
         return;
     }
 
-    // Map winner: adjust index to account for optional Extend slot
-    int mapIdx = g_voteHasExtend ? (winnerIdx - 1) : winnerIdx;
+    // Map winner: maps always start at index 1, so subtract 1
+    int mapIdx = winnerIdx - 1;
     if (mapIdx >= 0 && mapIdx < g_voteSelectedCount)
     {
         strncpy(g_nextMap, g_voteSelectedMaps[mapIdx], 127);
