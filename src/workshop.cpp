@@ -166,6 +166,9 @@ static void ParseMapEntries(const char *body)
     }
 }
 
+// Forward declaration
+static void EnsureMapsDownloaded();
+
 // ============================================================
 // HTTP loader
 // ============================================================
