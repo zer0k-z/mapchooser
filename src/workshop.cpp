@@ -309,8 +309,46 @@ void CMapchooserLoader::OnHTTPResponse(HTTPRequestCompleted_t *pResult, bool bIO
     MapPool_SetFromWorkshop(ptrs, s_mapCount);
     META_CONPRINTF("[Mapchooser] Map pool set: %d approved maps from cs2kz API.\n", s_mapCount);
 
+    EnsureMapsDownloaded();
+
     g_apiReady        = true;
     g_fetchInProgress = false;
+}
+
+// ============================================================
+// Pre-download all maps in the pool
+// ============================================================
+
+static void EnsureMapsDownloaded()
+{
+    ISteamUGC *pUGC = SteamGameServerUGC();
+    if (!pUGC)
+        return;
+
+    int started = 0;
+    for (int i = 0; i < s_mapCount; i++)
+    {
+        PublishedFileId_t id = (PublishedFileId_t)s_mapIDs[i];
+        if (!id)
+            continue;
+
+        uint32 state = pUGC->GetItemState(id);
+
+        if (state & k_EItemStateInstalled)
+            continue; // already on disk
+
+        if (state & k_EItemStateDownloading)
+            continue; // already in flight
+
+        if (pUGC->DownloadItem(id, false))
+            started++;
+        else
+            META_CONPRINTF("[Mapchooser] DownloadItem failed for map '%s' (%llu)\n",
+                s_mapNames[i], (unsigned long long)id);
+    }
+
+    if (started > 0)
+        META_CONPRINTF("[Mapchooser] Started background download for %d map(s).\n", started);
 }
 
 // ============================================================
@@ -352,13 +390,13 @@ void Workshop_OnSteamAPIActivated()
     g_fetchInProgress = false;
     Workshop_TryLoad();
 
-    // Refresh the map pool every 10 minutes
+    // Refresh the map pool every 20 minutes
     StartTimer([]() -> double {
         if (!g_fetchInProgress)
         {
             g_fetchInProgress = true;
             g_apiLoader.StartFetch();
         }
-        return 600.0;
-    }, 600.0, true /*persistent*/, true /*useRealTime*/);
+        return 1200.0;
+    }, 1200.0, true /*persistent*/, true /*useRealTime*/);
 }
