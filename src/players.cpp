@@ -6,9 +6,9 @@
 // Byte offset from INetworkGameServer to CUtlVector<CServerSideClient *>.
 // Matches the value used in cs2docker-autorestart.
 #ifdef _WIN32
-static constexpr int CLIENT_LIST_OFFSET = 592;
+static constexpr int CLIENT_LIST_OFFSET = 584;
 #else
-static constexpr int CLIENT_LIST_OFFSET = 592;
+static constexpr int CLIENT_LIST_OFFSET = 584;
 #endif
 
 static CUtlVector<CServerSideClient *> *GetClientList()
